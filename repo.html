@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impromptu — Pagbunot ng Tanong</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+  :root{
+    --stage: #12181B;
+    --stage-2: #1B2327;
+    --spot: #F2C744;
+    --spot-dim: #8A6A1E;
+    --card: #FBF7EE;
+    --ink: #1C1A14;
+    --ink-soft: #5A5749;
+    --line: rgba(242,199,68,0.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse 900px 500px at 50% -10%, #24312F 0%, var(--stage) 55%, #0B0F11 100%);
+    min-height:100vh;
+    font-family:'Space Grotesk', sans-serif;
+    color:#EDE6D6;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:48px 20px 80px;
+    overflow-x:hidden;
+  }
+
+  .marquee{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-style:italic;
+    font-size:clamp(38px,6vw,64px);
+    letter-spacing:-0.01em;
+    color:var(--spot);
+    text-align:center;
+    margin:0;
+    text-shadow: 0 0 40px rgba(242,199,68,0.25);
+  }
+  .kicker{
+    font-size:13px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:#9FA79C;
+    margin:10px 0 6px;
+  }
+  .sub{
+    font-size:15px;
+    color:#B9BCAF;
+    text-align:center;
+    max-width:480px;
+    margin:0 0 44px;
+    line-height:1.6;
+  }
+
+  .stagefloor{
+    position:relative;
+    width:100%;
+    max-width:640px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .spotlight{
+    position:absolute;
+    top:-120px;
+    left:50%;
+    transform:translateX(-50%);
+    width:640px;
+    height:640px;
+    background: radial-gradient(circle, rgba(242,199,68,0.16) 0%, rgba(242,199,68,0.04) 45%, transparent 70%);
+    pointer-events:none;
+    transition: opacity 0.4s ease;
+  }
+
+  .deck{
+    position:relative;
+    width:100%;
+    max-width:440px;
+    perspective:1400px;
+  }
+
+  .card{
+    position:relative;
+    width:100%;
+    min-height:300px;
+    background:var(--card);
+    border-radius:6px;
+    padding:38px 34px 30px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.04);
+    transform-style:preserve-3d;
+    transition: transform 0.55s cubic-bezier(.2,.8,.2,1), opacity 0.3s;
+  }
+  .card.drawing{
+    animation: cardflip 0.55s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes cardflip{
+    0%{ transform: rotateY(0deg) translateY(0); }
+    45%{ transform: rotateY(92deg) translateY(-14px); }
+    55%{ transform: rotateY(92deg) translateY(-14px); }
+    100%{ transform: rotateY(0deg) translateY(0); }
+  }
+
+  .card-number{
+    font-family:'Fraunces', serif;
+    font-size:15px;
+    font-weight:600;
+    color:var(--spot-dim);
+    letter-spacing:0.05em;
+    margin:0 0 18px;
+  }
+  .card-en{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:clamp(21px,4vw,26px);
+    line-height:1.32;
+    color:var(--ink);
+    margin:0 0 16px;
+  }
+  .divider{
+    width:36px;
+    height:2px;
+    background:var(--spot-dim);
+    opacity:0.5;
+    margin:0 0 16px;
+  }
+  .card-fil{
+    font-size:15px;
+    line-height:1.6;
+    color:var(--ink-soft);
+    margin:0;
+  }
+  .card-empty{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:220px;
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-size:19px;
+    color:#B8AF98;
+    text-align:center;
+    padding:20px;
+  }
+
+  .controls{
+    display:flex;
+    gap:14px;
+    margin-top:36px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  button{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:500;
+    font-size:14px;
+    letter-spacing:0.02em;
+    border-radius:999px;
+    cursor:pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-draw{
+    background:var(--spot);
+    color:#1C1A14;
+    border:none;
+    padding:15px 34px;
+  }
+  .btn-draw:hover{ background:#F7D875; transform:translateY(-1px); }
+  .btn-draw:active{ transform:translateY(0) scale(0.98); }
+  .btn-draw:disabled{ opacity:0.4; cursor:default; transform:none; }
+  .btn-reset{
+    background:transparent;
+    color:#9FA79C;
+    border:1px solid rgba(159,167,156,0.35);
+    padding:14px 22px;
+  }
+  .btn-reset:hover{ border-color:rgba(159,167,156,0.7); color:#EDE6D6; }
+
+  .tally{
+    margin-top:26px;
+    font-size:13px;
+    color:#818A7D;
+    letter-spacing:0.03em;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .tally-track{
+    width:120px;
+    height:4px;
+    background:rgba(159,167,156,0.2);
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .tally-fill{
+    height:100%;
+    background:var(--spot-dim);
+    transition:width 0.4s ease;
+  }
+
+  .timer-panel{
+    width:100%;
+    max-width:440px;
+    margin-top:30px;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+  }
+  .timer-phase{
+    font-size:12px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--spot-dim);
+    margin:0 0 6px;
+  }
+  .timer-phase.active{ color:var(--spot); }
+  .timer-clock{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:56px;
+    color:#EDE6D6;
+    line-height:1;
+    margin:0 0 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-clock.urgent{ color:#E8734A; }
+  .timer-track{
+    width:100%;
+    height:6px;
+    background:rgba(159,167,156,0.18);
+    border-radius:3px;
+    overflow:hidden;
+    margin-bottom:20px;
+  }
+  .timer-fill{
+    height:100%;
+    background:var(--spot);
+    width:100%;
+    transition:width 1s linear, background 0.3s ease;
+  }
+  .timer-fill.urgent{ background:#E8734A; }
+  .timer-controls{
+    display:flex;
+    gap:12px;
+  }
+  .btn-timer{
+    background:transparent;
+    color:#EDE6D6;
+    border:1px solid rgba(237,230,214,0.3);
+    padding:11px 22px;
+    font-size:13px;
+  }
+  .btn-timer:hover{ border-color:rgba(237,230,214,0.6); }
+  .btn-timer.primary{
+    background:var(--spot);
+    color:#1C1A14;
+    border:none;
+  }
+  .btn-timer.primary:hover{ background:#F7D875; }
+  .timer-done{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-size:16px;
+    color:#E8734A;
+    margin:0 0 16px;
+    display:none;
+  }
+
+  .history{
+    margin-top:44px;
+    width:100%;
+    max-width:440px;
+  }
+  .history-label{
+    font-size:12px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:#818A7D;
+    margin:0 0 12px;
+  }
+  .history-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .history-item{
+    font-size:13px;
+    color:#B9BCAF;
+    padding:10px 14px;
+    background:rgba(255,255,255,0.03);
+    border-left:2px solid var(--spot-dim);
+    display:flex;
+    gap:10px;
+  }
+  .history-item span.num{
+    color:var(--spot);
+    font-weight:500;
+    flex-shrink:0;
+  }
+
+  @media (max-width:480px){
+    .card{ padding:30px 24px 26px; }
+  }
+</style>
+</head>
+<body>
+
+  <p class="kicker">Palabas na pahayagan &middot; Speech contest</p>
+  <h1 class="marquee">Impromptu</h1>
+  <p class="sub">Pindutin ang buton para makabunot ng random na tanong para sa iyong 3-minutong pagsasalita. Press draw for a random 3-minute impromptu speech question.</p>
+
+  <div class="stagefloor">
+    <div class="spotlight" id="spotlight"></div>
+    <div class="deck">
+      <div class="card" id="card">
+        <div class="card-empty" id="cardEmpty">Handa ka na ba?<br>Tap "bunutin" to draw your first question.</div>
+        <div id="cardContent" style="display:none;">
+          <p class="card-number" id="cardNumber"></p>
+          <p class="card-en" id="cardEn"></p>
+          <div class="divider"></div>
+          <p class="card-fil" id="cardFil"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn-draw" id="drawBtn">Bunutin ang tanong</button>
+      <button class="btn-reset" id="resetBtn">Simulan ulit</button>
+    </div>
+
+    <div class="tally">
+      <span id="tallyText">0 / 50 nabunot</span>
+      <div class="tally-track"><div class="tally-fill" id="tallyFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="timer-panel" id="timerPanel">
+      <p class="timer-phase" id="timerPhase">Paghahanda &middot; Prep time</p>
+      <p class="timer-clock" id="timerClock">1:00</p>
+      <p class="timer-done" id="timerDone">Panahon na! Time's up.</p>
+      <div class="timer-track"><div class="timer-fill" id="timerFill"></div></div>
+      <div class="timer-controls">
+        <button class="btn-timer primary" id="timerStartBtn">Simulan &middot; Start</button>
+        <button class="btn-timer" id="timerPauseBtn" style="display:none;">I-pause</button>
+        <button class="btn-timer" id="timerResetBtn" style="display:none;">Ulitin</button>
+      </div>
+    </div>
+
+    <div class="history">
+      <p class="history-label">Kasaysayan ng bunot &middot; Draw history</p>
+      <ul class="history-list" id="historyList"></ul>
+    </div>
+  </div>
+
+<script>
+  const questions = [
+    { en: "Do good grades always lead to success in life? Why or why not?", fil: "Palagi bang nagdudulot ng tagumpay sa buhay ang matataas na marka? Bakit o bakit hindi?" },
+    { en: "Which is more important: academic excellence or good character? Explain your answer.", fil: "Alin ang mas mahalaga: kahusayan sa pag-aaral o mabuting pagkatao? Ipaliwanag ang iyong sagot." },
+    { en: "Can someone become successful even without graduating from college? Explain.", fil: "Maaari bang maging matagumpay ang isang tao kahit hindi nakapagtapos ng kolehiyo? Ipaliwanag." },
+    { en: "How can school prepare you for real-life challenges?", fil: "Paano ka inihahanda ng paaralan sa mga tunay na hamon sa buhay?" },
+    { en: "What lesson from school do you think will help you the most in the future?", fil: "Anong aral mula sa paaralan ang sa tingin mo ay pinakamakatutulong sa iyo sa hinaharap?" },
+    { en: "Should schools value skills and talents as much as academic performance? Why?", fil: "Dapat bang pahalagahan ng paaralan ang kakayahan at talento tulad ng pagganap sa akademiko? Bakit?" },
+    { en: "How do failures in school help a person grow?", fil: "Paano nakatutulong ang mga kabiguan sa paaralan upang umunlad ang isang tao?" },
+    { en: "Is being hardworking more important than being intelligent? Explain.", fil: "Mas mahalaga ba ang pagiging masipag kaysa pagiging matalino? Ipaliwanag." },
+    { en: "How can students balance academic success and personal happiness?", fil: "Paano mababalanse ng mga mag-aaral ang tagumpay sa pag-aaral at personal na kaligayahan?" },
+    { en: "What does success mean to you beyond grades?", fil: "Ano ang kahulugan ng tagumpay para sa iyo bukod sa mga marka?" },
+    { en: "Why is it important for teenagers to talk about their feelings?", fil: "Bakit mahalaga para sa mga kabataan ang pagbabahagi ng kanilang nararamdaman?" },
+    { en: "How can schools help improve the mental health of students?", fil: "Paano makatutulong ang paaralan sa pagpapabuti ng kalusugang pangkaisipan ng mga mag-aaral?" },
+    { en: "Should students take regular breaks from social media? Why?", fil: "Dapat bang magkaroon ng regular na pahinga ang mga mag-aaral sa paggamit ng social media? Bakit?" },
+    { en: "How does academic pressure affect teenagers?", fil: "Paano naaapektuhan ng pressure sa pag-aaral ang mga kabataan?" },
+    { en: "What should a friend do if someone is struggling emotionally?", fil: "Ano ang dapat gawin ng isang kaibigan kung may pinagdaraanan ang isang tao sa emosyonal na aspeto?" },
+    { en: "Is asking for help a sign of strength or weakness? Explain.", fil: "Ang paghingi ba ng tulong ay tanda ng lakas o kahinaan? Ipaliwanag." },
+    { en: "How can hobbies improve a teenager's mental health?", fil: "Paano nakatutulong ang mga libangan sa kalusugang pangkaisipan ng isang kabataan?" },
+    { en: "What simple habit can help reduce stress among students?", fil: "Anong simpleng gawain ang makatutulong upang mabawasan ang stress ng mga mag-aaral?" },
+    { en: "Should mental health education be included in every school? Why?", fil: "Dapat bang isama ang edukasyon tungkol sa mental health sa bawat paaralan? Bakit?" },
+    { en: "What advice would you give to a teenager experiencing too much stress?", fil: "Anong payo ang maibibigay mo sa isang kabataang nakararanas ng matinding stress?" },
+    { en: "How does a family's support help a child succeed?", fil: "Paano nakatutulong ang suporta ng pamilya sa tagumpay ng isang anak?" },
+    { en: "Can strict parenting have positive effects? Why or why not?", fil: "Maaari bang magkaroon ng positibong epekto ang mahigpit na pagpapalaki ng magulang? Bakit o bakit hindi?" },
+    { en: "What values should parents teach their children?", fil: "Anong mga pagpapahalaga ang dapat ituro ng mga magulang sa kanilang mga anak?" },
+    { en: "Should parents allow teenagers to make their own decisions? Explain.", fil: "Dapat bang hayaan ng mga magulang ang mga kabataan na gumawa ng sarili nilang desisyon? Ipaliwanag." },
+    { en: "How does communication strengthen family relationships?", fil: "Paano pinatatatag ng maayos na komunikasyon ang relasyon sa pamilya?" },
+    { en: "Can a person succeed even without strong family support? Why?", fil: "Maaari bang magtagumpay ang isang tao kahit kulang ang suporta ng pamilya? Bakit?" },
+    { en: "How do family traditions influence a person's future?", fil: "Paano naaapektuhan ng mga tradisyon ng pamilya ang kinabukasan ng isang tao?" },
+    { en: "Should parents focus more on discipline or understanding? Explain.", fil: "Dapat bang mas bigyang-pansin ng mga magulang ang disiplina o pag-unawa? Ipaliwanag." },
+    { en: "What lesson from your family has changed your life the most?", fil: "Anong aral mula sa iyong pamilya ang pinakamalaking naging impluwensiya sa iyong buhay?" },
+    { en: "Why is respect important in every family?", fil: "Bakit mahalaga ang paggalang sa bawat pamilya?" },
+    { en: "What can young Filipinos do to help reduce corruption?", fil: "Ano ang maaaring gawin ng mga kabataang Pilipino upang makatulong sa paglaban sa korapsyon?" },
+    { en: "Should social media be used responsibly when discussing political issues? Why?", fil: "Dapat bang maging responsable ang paggamit ng social media sa pagtalakay ng mga isyung pampulitika? Bakit?" },
+    { en: "Should the Philippine education system focus more on practical life skills? Explain.", fil: "Dapat bang higit na pagtuunan ng sistema ng edukasyon sa Pilipinas ang mga praktikal na kasanayan sa buhay? Ipaliwanag." },
+    { en: "What is the biggest challenge facing Filipino students today?", fil: "Ano ang pinakamalaking hamon na kinahaharap ng mga estudyanteng Pilipino ngayon?" },
+    { en: "How can citizens help improve the Philippines?", fil: "Paano makatutulong ang mga mamamayan sa pag-unlad ng Pilipinas?" },
+    { en: "Should schools discuss topics like same-sex marriage respectfully? Why?", fil: "Dapat bang talakayin sa paaralan ang mga paksa tulad ng same-sex marriage sa magalang at maayos na paraan? Bakit?" },
+    { en: "How does religion influence the lives of many Filipinos?", fil: "Paano nakaaapekto ang relihiyon sa buhay ng maraming Pilipino?" },
+    { en: "What qualities should Filipino leaders have?", fil: "Anong mga katangian ang dapat taglayin ng mga lider ng Pilipinas?" },
+    { en: "Should every Filipino vote wisely? Why is it important?", fil: "Dapat bang maging matalino ang bawat Pilipino sa pagboto? Bakit ito mahalaga?" },
+    { en: "If you could improve one problem in the Philippines, what would it be and why?", fil: "Kung maaari mong baguhin ang isang suliranin sa Pilipinas, ano ito at bakit?" },
+    { en: "What is one lesson you learned this year that changed your perspective?", fil: "Ano ang isang aral na natutuhan mo ngayong taon na nagbago sa iyong pananaw?" },
+    { en: "Who has influenced your life the most, and why?", fil: "Sino ang may pinakamalaking impluwensiya sa iyong buhay, at bakit?" },
+    { en: "What is your greatest strength, and how does it help you?", fil: "Ano ang pinakamalakas mong katangian, at paano ito nakatutulong sa iyo?" },
+    { en: "What is one mistake that taught you an important lesson?", fil: "Ano ang isang pagkakamali na nagturo sa iyo ng mahalagang aral?" },
+    { en: "How do you define happiness?", fil: "Paano mo binibigyang-kahulugan ang kaligayahan?" },
+    { en: "If you could change one thing about yourself, what would it be and why?", fil: "Kung maaari mong baguhin ang isang bagay tungkol sa iyong sarili, ano ito at bakit?" },
+    { en: "What motivates you to keep going during difficult times?", fil: "Ano ang nagbibigay sa iyo ng lakas upang magpatuloy sa panahon ng kahirapan?" },
+    { en: "What dream do you hope to achieve in the next ten years?", fil: "Anong pangarap ang nais mong makamit sa loob ng susunod na sampung taon?" },
+    { en: "What does being a responsible teenager mean to you?", fil: "Ano ang kahulugan ng pagiging responsableng kabataan para sa iyo?" },
+    { en: "If you could give one piece of advice to your younger self, what would it be?", fil: "Kung makapagbibigay ka ng isang payo sa iyong mas batang sarili, ano ito?" }
+  ];
+
+  let remaining = [...Array(questions.length).keys()];
+  let drawn = [];
+
+  const card = document.getElementById('card');
+  const cardEmpty = document.getElementById('cardEmpty');
+  const cardContent = document.getElementById('cardContent');
+  const cardNumber = document.getElementById('cardNumber');
+  const cardEn = document.getElementById('cardEn');
+  const cardFil = document.getElementById('cardFil');
+  const drawBtn = document.getElementById('drawBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const tallyText = document.getElementById('tallyText');
+  const tallyFill = document.getElementById('tallyFill');
+  const historyList = document.getElementById('historyList');
+  const spotlight = document.getElementById('spotlight');
+
+  const timerPanel = document.getElementById('timerPanel');
+  const timerPhase = document.getElementById('timerPhase');
+  const timerClock = document.getElementById('timerClock');
+  const timerFill = document.getElementById('timerFill');
+  const timerDone = document.getElementById('timerDone');
+  const timerStartBtn = document.getElementById('timerStartBtn');
+  const timerPauseBtn = document.getElementById('timerPauseBtn');
+  const timerResetBtn = document.getElementById('timerResetBtn');
+
+  const PREP_SECONDS = 60;
+  const ANSWER_SECONDS = 90;
+  let timerInterval = null;
+  let timerPhaseName = 'prep';
+  let secondsLeft = PREP_SECONDS;
+  let timerRunning = false;
+
+  function beep(freq, duration){
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    }catch(e){}
+  }
+
+  function formatTime(s){
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function updateTimerDisplay(){
+    const total = timerPhaseName === 'prep' ? PREP_SECONDS : ANSWER_SECONDS;
+    timerClock.textContent = formatTime(secondsLeft);
+    timerFill.style.width = (secondsLeft / total * 100) + '%';
+    const urgent = secondsLeft <= 10;
+    timerClock.classList.toggle('urgent', urgent);
+    timerFill.classList.toggle('urgent', urgent);
+    timerPhase.textContent = timerPhaseName === 'prep'
+      ? 'Paghahanda \u00b7 Prep time'
+      : 'Pagsagot \u00b7 Answer time';
+    timerPhase.classList.add('active');
+  }
+
+  function tick(){
+    secondsLeft--;
+    if (secondsLeft <= 0){
+      if (timerPhaseName === 'prep'){
+        beep(880, 0.3);
+        timerPhaseName = 'answer';
+        secondsLeft = ANSWER_SECONDS;
+        updateTimerDisplay();
+      } else {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        timerRunning = false;
+        beep(660, 0.5);
+        setTimeout(() => beep(660, 0.5), 350);
+        timerDone.style.display = 'block';
+        timerStartBtn.style.display = 'none';
+        timerPauseBtn.style.display = 'none';
+        timerResetBtn.style.display = 'inline-block';
+      }
+    } else {
+      updateTimerDisplay();
+    }
+  }
+
+  function startTimer(){
+    timerRunning = true;
+    timerStartBtn.style.display = 'none';
+    timerPauseBtn.style.display = 'inline-block';
+    timerPauseBtn.textContent = 'I-pause';
+    timerDone.style.display = 'none';
+    timerInterval = setInterval(tick, 1000);
+  }
+
+  function pauseTimer(){
+    if (timerRunning){
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerRunning = false;
+      timerPauseBtn.textContent = 'Ipagpatuloy';
+    } else {
+      timerRunning = true;
+      timerPauseBtn.textContent = 'I-pause';
+      timerInterval = setInterval(tick, 1000);
+    }
+  }
+
+  function resetTimer(){
+    clearInterval(timerInterval);
+    timerInterval = null;
+    timerRunning = false;
+    timerPhaseName = 'prep';
+    secondsLeft = PREP_SECONDS;
+    updateTimerDisplay();
+    timerDone.style.display = 'none';
+    timerStartBtn.style.display = 'inline-block';
+    timerPauseBtn.style.display = 'none';
+    timerResetBtn.style.display = 'none';
+  }
+
+  timerStartBtn.addEventListener('click', startTimer);
+  timerPauseBtn.addEventListener('click', pauseTimer);
+  timerResetBtn.addEventListener('click', resetTimer);
+
+  function updateTally(){
+    tallyText.textContent = drawn.length + " / " + questions.length + " nabunot";
+    tallyFill.style.width = (drawn.length / questions.length * 100) + "%";
+  }
+
+  function renderHistory(){
+    historyList.innerHTML = "";
+    const recent = [...drawn].reverse().slice(0, 8);
+    recent.forEach(idx => {
+      const li = document.createElement('li');
+      li.className = 'history-item';
+      const q = questions[idx];
+      li.innerHTML = '<span class="num">#' + (idx + 1) + '</span><span>' + q.en + '</span>';
+      historyList.appendChild(li);
+    });
+  }
+
+  function drawQuestion(){
+    if (remaining.length === 0) return;
+    drawBtn.disabled = true;
+    spotlight.style.opacity = '1.6';
+
+    const r = Math.floor(Math.random() * remaining.length);
+    const idx = remaining[r];
+    remaining.splice(r, 1);
+    drawn.push(idx);
+
+    card.classList.remove('drawing');
+    void card.offsetWidth;
+    card.classList.add('drawing');
+
+    setTimeout(() => {
+      cardEmpty.style.display = 'none';
+      cardContent.style.display = 'block';
+      cardNumber.textContent = 'Tanong bilang ' + (idx + 1) + ' \u00b7 Question ' + (idx + 1);
+      cardEn.textContent = questions[idx].en;
+      cardFil.textContent = questions[idx].fil;
+      updateTally();
+      renderHistory();
+      timerPanel.style.display = 'flex';
+      resetTimer();
+    }, 275);
+
+    setTimeout(() => {
+      drawBtn.disabled = remaining.length === 0;
+      spotlight.style.opacity = '1';
+    }, 560);
+  }
+
+  function resetDeck(){
+    remaining = [...Array(questions.length).keys()];
+    drawn = [];
+    cardEmpty.style.display = 'flex';
+    cardEmpty.textContent = 'Handa ka na ba? Tap "bunutin" to draw again.';
+    cardContent.style.display = 'none';
+    drawBtn.disabled = false;
+    updateTally();
+    renderHistory();
+    timerPanel.style.display = 'none';
+    clearInterval(timerInterval);
+    timerInterval = null;
+    timerRunning = false;
+    timerPhaseName = 'prep';
+    secondsLeft = PREP_SECONDS;
+  }
+
+  drawBtn.addEventListener('click', drawQuestion);
+  resetBtn.addEventListener('click', resetDeck);
+
+  updateTally();
+  updateTimerDisplay();
+</script>
+
+</body>
+</html>
